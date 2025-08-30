@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/yhlooo/gcovgo/pkg/version"
+	"github.com/yhlooo/gcovgo/internal/version"
 )
 
 const versionTemplate = `Version:   {{ .Version }}
