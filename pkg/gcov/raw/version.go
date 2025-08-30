@@ -7,7 +7,7 @@ import (
 )
 
 // Version 版本
-type Version int32
+type Version uint32
 
 var _ fmt.Stringer = Version(0)
 var _ encoding.TextMarshaler = Version(0)
@@ -21,3 +21,7 @@ func (v Version) String() string {
 func (v Version) MarshalText() ([]byte, error) {
 	return []byte(v.String()), nil
 }
+
+const (
+	Version8 Version = 'A'<<24 | '8'<<16 | '0'<<8 | '*'
+)

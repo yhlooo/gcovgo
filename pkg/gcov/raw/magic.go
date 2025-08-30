@@ -7,17 +7,10 @@ import (
 )
 
 // Magic 文件魔术码，用于标识文件类型
-type Magic int32
+type Magic uint32
 
 var _ fmt.Stringer = Magic(0)
 var _ encoding.TextMarshaler = Magic(0)
-
-const (
-	// MagicNote note 文件的 magic
-	MagicNote Magic = 'g'<<24 | 'c'<<16 | 'n'<<8 | 'o'
-	// MagicData data 文件的 magic
-	MagicData Magic = 'g'<<24 | 'c'<<16 | 'd'<<8 | 'a'
-)
 
 // String 返回字符串表示
 func (magic Magic) String() string {
@@ -34,3 +27,10 @@ func (magic Magic) String() string {
 func (magic Magic) MarshalText() ([]byte, error) {
 	return []byte(magic.String()), nil
 }
+
+const (
+	// MagicNote note 文件的 magic
+	MagicNote Magic = 'g'<<24 | 'c'<<16 | 'n'<<8 | 'o'
+	// MagicData data 文件的 magic
+	MagicData Magic = 'g'<<24 | 'c'<<16 | 'd'<<8 | 'a'
+)
