@@ -1,0 +1,2 @@
+*.gcno filter=lfs diff=lfs merge=lfs -text
+*.gcda filter=lfs diff=lfs merge=lfs -text
