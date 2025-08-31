@@ -44,6 +44,7 @@ func newDumpCommand() *cobra.Command {
 		},
 	}
 
+	// 绑定选项到命令行参数
 	cmd.Flags().StringVarP(&outputFormat, "format", "f", outputFormat, "Output format. One of 'yaml' or 'json'.")
 
 	return cmd

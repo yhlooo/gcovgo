@@ -3,6 +3,8 @@ package raw
 import (
 	"encoding"
 	"encoding/binary"
+	"fmt"
+	"strings"
 )
 
 // Record 记录
@@ -36,7 +38,7 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 
 	switch r.Tag {
 	default:
-		r.Raw = &RecordRaw{Data: make([]byte, 4*int(r.Length))}
+		r.Raw = &RecordRaw{Data: make(Bytes, 4*int(r.Length))}
 		copy(r.Raw.Data, data)
 	}
 
@@ -46,7 +48,89 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 // RecordTag 记录类型标签
 type RecordTag uint32
 
+var _ fmt.Stringer = RecordTag(0)
+var _ encoding.TextMarshaler = RecordTag(0)
+
+const (
+	// 通用记录类型
+	// 以[01..3f] 开头
+
+	TagFunction    RecordTag = 0x01000000
+	TagBlocks      RecordTag = 0x01410000
+	TagArcs        RecordTag = 0x01430000
+	TagLines       RecordTag = 0x01450000
+	TagCounterBase RecordTag = 0x01a10000
+
+	// Note 的记录类型
+	// 以 [41..9f] 开头
+
+	// Data 的记录类型
+	// 以 [a1..ff] 开头
+
+	TagObjectSummary  RecordTag = 0xa1000000
+	TagProgramSummary RecordTag = 0xa3000000
+	TagAfdoFileNames  RecordTag = 0xaa000000
+	TagAfdoFunction   RecordTag = 0xac000000
+	TagAfdoWorkingSet RecordTag = 0xaf000000
+)
+
+// String 返回字符串表示
+func (tag RecordTag) String() string {
+	switch tag {
+	case TagFunction:
+		return "Function"
+	case TagBlocks:
+		return "Blocks"
+	case TagArcs:
+		return "Arcs"
+	case TagLines:
+		return "Lines"
+	case TagCounterBase:
+		return "CounterBase"
+	case TagObjectSummary:
+		return "ObjectSummary"
+	case TagProgramSummary:
+		return "ProgramSummary"
+	case TagAfdoFileNames:
+		return "AfdoFileNames"
+	case TagAfdoFunction:
+		return "AfdoFunction"
+	case TagAfdoWorkingSet:
+		return "AfdoWorkingSet"
+	}
+
+	return fmt.Sprintf("0x%08x", uint32(tag))
+}
+
+// MarshalText 序列化为文本
+func (tag RecordTag) MarshalText() ([]byte, error) {
+	return []byte(tag.String()), nil
+}
+
 // RecordRaw 记录原始数据
 type RecordRaw struct {
-	Data []byte
+	Data Bytes
+}
+
+// Bytes 原始字节
+type Bytes []byte
+
+var _ fmt.Stringer = Bytes(nil)
+var _ encoding.TextMarshaler = Bytes(nil)
+
+// String 返回字符串表示
+func (bytes Bytes) String() string {
+	ret := ""
+	remaining := bytes
+	for len(remaining) >= 4 {
+		ret += fmt.Sprintf("0x%08x ", binary.LittleEndian.Uint32(remaining[:4]))
+		remaining = remaining[4:]
+	}
+
+	return strings.TrimRight(ret, " ")
+}
+
+// MarshalText 序列化为文本
+func (bytes Bytes) MarshalText() ([]byte, error) {
+	return []byte(bytes.String()), nil
 }

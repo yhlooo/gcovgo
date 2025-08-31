@@ -20,7 +20,7 @@ func (magic Magic) String() string {
 	case MagicData:
 		return "gcda"
 	}
-	return fmt.Sprintf("%s(0x%08x)", string(binary.BigEndian.AppendUint32(nil, uint32(magic))), int32(magic))
+	return fmt.Sprintf("%s(0x%08x)", string(binary.BigEndian.AppendUint32(nil, uint32(magic))), uint32(magic))
 }
 
 // MarshalText 序列化为文本
