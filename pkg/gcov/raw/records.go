@@ -4,7 +4,6 @@ import (
 	"encoding"
 	"encoding/binary"
 	"fmt"
-	"strings"
 )
 
 // Record 记录
@@ -16,6 +15,14 @@ type Record struct {
 
 	// 基于 Tag ，以下成员仅有一个值不为 nil
 
+	// 函数，当 Tag 为 TagFunction 时有值
+	Function *RecordFunction `json:",omitempty"`
+	// 块，当 Tag 为 TagBlocks 时有值
+	Blocks *RecordBlocks `json:",omitempty"`
+	// 弧，当 Tag 为 TagArcs 时有值
+	Arcs *RecordArcs `json:",omitempty"`
+	// 行，当 Tag 为 TagLines 时有值
+	Lines *RecordLines `json:",omitempty"`
 	// 原始数据，当 Tag 无法处理时有值
 	Raw *RecordRaw `json:",omitempty"`
 }
@@ -27,19 +34,35 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 	if len(data) < 8 {
 		return newDataTooShortError(len(data), 8, "tag and length")
 	}
-
 	r.Tag = RecordTag(binary.LittleEndian.Uint32(data[:4]))
 	r.Length = binary.LittleEndian.Uint32(data[4:8])
-	data = data[8:]
 
 	if len(data) < int(r.Length)*4 {
 		return newDataTooShortError(len(data), int(r.Length)*4, "items")
 	}
+	data = data[8 : 8+int(r.Length)*4]
 
+	var recordData encoding.BinaryUnmarshaler
 	switch r.Tag {
+	case TagFunction:
+		r.Function = &RecordFunction{}
+		recordData = r.Function
+	case TagBlocks:
+		r.Blocks = &RecordBlocks{}
+		recordData = r.Blocks
+	case TagArcs:
+		r.Arcs = &RecordArcs{}
+		recordData = r.Arcs
+	case TagLines:
+		r.Lines = &RecordLines{}
+		recordData = r.Lines
 	default:
-		r.Raw = &RecordRaw{Data: make(Bytes, 4*int(r.Length))}
-		copy(r.Raw.Data, data)
+		r.Raw = &RecordRaw{}
+		recordData = r.Raw
+	}
+
+	if err := recordData.UnmarshalBinary(data); err != nil {
+		return fmt.Errorf("unmarshal %s record error: %w", r.Tag, err)
 	}
 
 	return nil
@@ -112,25 +135,11 @@ type RecordRaw struct {
 	Data Bytes
 }
 
-// Bytes 原始字节
-type Bytes []byte
+var _ encoding.BinaryUnmarshaler = (*RecordRaw)(nil)
 
-var _ fmt.Stringer = Bytes(nil)
-var _ encoding.TextMarshaler = Bytes(nil)
-
-// String 返回字符串表示
-func (bytes Bytes) String() string {
-	ret := ""
-	remaining := bytes
-	for len(remaining) >= 4 {
-		ret += fmt.Sprintf("0x%08x ", binary.LittleEndian.Uint32(remaining[:4]))
-		remaining = remaining[4:]
-	}
-
-	return strings.TrimRight(ret, " ")
-}
-
-// MarshalText 序列化为文本
-func (bytes Bytes) MarshalText() ([]byte, error) {
-	return []byte(bytes.String()), nil
+// UnmarshalBinary 从二进制反序列化
+func (r *RecordRaw) UnmarshalBinary(data []byte) error {
+	r.Data = make([]byte, len(data))
+	copy(r.Data, data)
+	return nil
 }

@@ -13,7 +13,7 @@ type Raw struct {
 	// 版本号
 	Version Version
 	// 时间戳
-	Stamp uint32
+	Stamp HexUint32
 
 	SupportUnexecutedBlocks uint32 // TODO: 应该是 bool 类型？
 
@@ -31,7 +31,7 @@ func (raw *Raw) UnmarshalBinary(data []byte) error {
 	}
 	raw.Magic = Magic(binary.LittleEndian.Uint32(data[:4]))
 	raw.Version = Version(binary.LittleEndian.Uint32(data[4:8]))
-	raw.Stamp = binary.LittleEndian.Uint32(data[8:12])
+	raw.Stamp = HexUint32(binary.LittleEndian.Uint32(data[8:12]))
 	data = data[12:]
 
 	// support_unexecuted_blocks
