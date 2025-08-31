@@ -23,6 +23,10 @@ type Record struct {
 	Arcs *RecordArcs `json:",omitempty"`
 	// 行，当 Tag 为 TagLines 时有值
 	Lines *RecordLines `json:",omitempty"`
+	// 程序摘要，当 Tag 为 TagProgramSummary 时有值
+	ProgramSummary *RecordProgramSummary `json:",omitempty"`
+	// 计数器，当 Tag 为 TagCounter 时有值
+	Counter *RecordCounter `json:",omitempty"`
 	// 原始数据，当 Tag 无法处理时有值
 	Raw *RecordRaw `json:",omitempty"`
 }
@@ -56,6 +60,12 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 	case TagLines:
 		r.Lines = &RecordLines{}
 		recordData = r.Lines
+	case TagProgramSummary:
+		r.ProgramSummary = &RecordProgramSummary{}
+		recordData = r.ProgramSummary
+	case TagCounter:
+		r.Counter = &RecordCounter{}
+		recordData = r.Counter
 	default:
 		r.Raw = &RecordRaw{}
 		recordData = r.Raw
@@ -78,11 +88,11 @@ const (
 	// 通用记录类型
 	// 以[01..3f] 开头
 
-	TagFunction    RecordTag = 0x01000000
-	TagBlocks      RecordTag = 0x01410000
-	TagArcs        RecordTag = 0x01430000
-	TagLines       RecordTag = 0x01450000
-	TagCounterBase RecordTag = 0x01a10000
+	TagFunction RecordTag = 0x01000000
+	TagBlocks   RecordTag = 0x01410000
+	TagArcs     RecordTag = 0x01430000
+	TagLines    RecordTag = 0x01450000
+	TagCounter  RecordTag = 0x01a10000
 
 	// Note 的记录类型
 	// 以 [41..9f] 开头
@@ -108,8 +118,8 @@ func (tag RecordTag) String() string {
 		return "Arcs"
 	case TagLines:
 		return "Lines"
-	case TagCounterBase:
-		return "CounterBase"
+	case TagCounter:
+		return "Counter"
 	case TagObjectSummary:
 		return "ObjectSummary"
 	case TagProgramSummary:
