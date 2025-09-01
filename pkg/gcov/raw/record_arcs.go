@@ -4,13 +4,14 @@ import (
 	"encoding"
 	"encoding/binary"
 	"fmt"
+	"strings"
 )
 
-// RecordArcs 弧记录
+// RecordArcs 边记录
 type RecordArcs struct {
 	// 块编号
 	BlockNo uint32
-	// 块往外连接的弧
+	// 块往外连接的边
 	Arcs []Arc
 }
 
@@ -37,12 +38,12 @@ func (r *RecordArcs) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Arc 弧
+// Arc 边
 type Arc struct {
 	// 目标块编号
 	DestBlock uint32
-	// 弧属性
-	Flags uint32 // TODO: 应该是个 bitmap
+	// 边属性
+	Flags ArcFlag
 }
 
 var _ encoding.BinaryUnmarshaler = (*Arc)(nil)
@@ -55,7 +56,55 @@ func (arc *Arc) UnmarshalBinary(data []byte) error {
 		return newDataTooShortError(len(data), 8, "dest_block and flags")
 	}
 	arc.DestBlock = binary.LittleEndian.Uint32(data[:4])
-	arc.Flags = binary.LittleEndian.Uint32(data[4:8])
+	arc.Flags = ArcFlag(binary.LittleEndian.Uint32(data[4:8]))
 
 	return nil
+}
+
+// ArcFlag 边属性
+type ArcFlag uint32
+
+var _ fmt.Stringer = ArcFlag(0)
+
+const (
+	ArcFlagOnTree      ArcFlag = 1
+	ArcFlagFake        ArcFlag = 1 << 1
+	ArcFlagFallthrough ArcFlag = 1 << 2
+)
+
+// OnTree 是否包含 OnTree flag
+func (flag ArcFlag) OnTree() bool {
+	return flag&ArcFlagOnTree != 0
+}
+
+// Fake 是否包含 Fake flag
+func (flag ArcFlag) Fake() bool {
+	return flag&ArcFlagFake != 0
+}
+
+// Fallthrough 是否包含 Fallthrough flag
+func (flag ArcFlag) Fallthrough() bool {
+	return flag&ArcFlagFallthrough != 0
+}
+
+// String 返回字符串表示
+func (flag ArcFlag) String() string {
+	ret := ""
+	remaining := flag
+	if remaining.OnTree() {
+		ret += "OnTree|"
+		remaining &= ^ArcFlagOnTree
+	}
+	if remaining.Fake() {
+		ret += "Fake|"
+		remaining &= ^ArcFlagFake
+	}
+	if remaining.Fallthrough() {
+		ret += "Fallthrough|"
+		remaining &= ^ArcFlagFallthrough
+	}
+	if remaining != 0 {
+		ret += fmt.Sprintf("%032b", remaining)
+	}
+	return strings.TrimRight(ret, "|")
 }
