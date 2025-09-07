@@ -1,6 +1,7 @@
 package gcovgo
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 func NewCommand(name string) *cobra.Command {
 	verbosity := 0
 	cpuProfile := ""
+	outputFormat := ""
 
 	var cpuProfileOutput *os.File
 	cmd := &cobra.Command{
@@ -69,8 +71,18 @@ func NewCommand(name string) *cobra.Command {
 					logger.Error(err, fmt.Sprintf("resolve %q error", noteFileName))
 					continue
 				}
+				ret.DataFile = fileName
 
-				fmt.Println(ret.IntermediateText())
+				switch outputFormat {
+				case "json":
+					outputContent, err := json.MarshalIndent(ret, "", "  ")
+					if err != nil {
+						return fmt.Errorf("marshal gcov raw to json error: %w", err)
+					}
+					fmt.Println(string(outputContent))
+				default:
+					fmt.Println(ret.IntermediateText())
+				}
 			}
 
 			return nil
@@ -90,6 +102,7 @@ func NewCommand(name string) *cobra.Command {
 	fs := cmd.PersistentFlags()
 	fs.IntVarP(&verbosity, "verbose", "v", verbosity, "Number for the log level verbosity (0, 1, or 2)")
 	fs.StringVar(&cpuProfile, "cpu-profile", cpuProfile, "Write a CPU profile to the specified file")
+	cmd.Flags().StringVarP(&outputFormat, "format", "f", outputFormat, "Output format. One of 'yaml' or 'json'.")
 
 	// 添加子命令
 	cmd.AddCommand(

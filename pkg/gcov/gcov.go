@@ -1,6 +1,7 @@
 package gcov
 
 import (
+	"encoding"
 	"fmt"
 )
 
@@ -38,9 +39,22 @@ type Version struct {
 	Status string `json:"status,omitempty"`
 }
 
+var _ fmt.Stringer = (*Version)(nil)
+var _ encoding.TextMarshaler = (*Version)(nil)
+
 // IntermediateText 输出中间文本形式
 func (v *Version) IntermediateText() string {
-	return fmt.Sprintf("version:%d.%d.0\n", v.Major, v.Minor)
+	return fmt.Sprintf("version:%s\n", v.String())
+}
+
+// String 返回字符串表示
+func (v *Version) String() string {
+	return fmt.Sprintf("%d.%d.0", v.Major, v.Minor)
+}
+
+// MarshalText 序列化为文本
+func (v *Version) MarshalText() ([]byte, error) {
+	return []byte(v.String()), nil
 }
 
 // File 文件覆盖情况信息
@@ -67,17 +81,26 @@ func (f *File) IntermediateText() string {
 
 // Function 函数覆盖情况信息
 type Function struct {
-	Name        string `json:"name"`
-	StartLine   uint32 `json:"start_line"`
-	StartColumn uint32 `json:"start_column,omitempty"`
-	EndLine     uint32 `json:"end_line"`
-	EndColumn   uint32 `json:"end_column,omitempty"`
-
-	ExecutionCount uint64 `json:"execution_count"`
-	Blocks         uint32 `json:"blocks"`
-	BlocksExecuted uint32 `json:"blocks_executed"`
-
+	// 函数名
+	Name string `json:"name"`
+	// 去混淆的函数名
 	DemangledName string `json:"demangled_name,omitempty"`
+
+	// 起始行号
+	StartLine uint32 `json:"start_line"`
+	// 起始列号
+	StartColumn uint32 `json:"start_column,omitempty"`
+	// 结束行号
+	EndLine uint32 `json:"end_line"`
+	// 结束列号
+	EndColumn uint32 `json:"end_column,omitempty"`
+
+	// 函数中基本块数目
+	Blocks uint32 `json:"blocks"`
+	// 函数中有执行的基本块数目
+	BlocksExecuted uint32 `json:"blocks_executed"`
+	// 函数执行次数
+	ExecutionCount uint64 `json:"execution_count"`
 }
 
 // IntermediateText 输出中间文本形式
@@ -87,11 +110,16 @@ func (fn *Function) IntermediateText() string {
 
 // Line 覆盖情况信息
 type Line struct {
-	LineNumber      uint32   `json:"line_number"`
-	Count           uint64   `json:"count"`
-	Branches        []Branch `json:"branches,omitempty"`
-	UnexecutedBlock bool     `json:"unexecuted,omitempty"`
-	FunctionName    string   `json:"function_name,omitempty"`
+	// 行号
+	LineNumber uint32 `json:"line_number"`
+	// 执行次数
+	Count uint64 `json:"count"`
+	// 分支
+	Branches []Branch `json:"branches"`
+	// 该行是否包含未执行的块
+	UnexecutedBlock bool `json:"unexecuted_block"`
+	// 函数名
+	FunctionName string `json:"function_name"`
 }
 
 // IntermediateText 输出中间文本形式
@@ -109,9 +137,14 @@ func (ln *Line) IntermediateText() string {
 
 // Branch 分支覆盖情况信息
 type Branch struct {
-	Count       uint64 `json:"count"`
-	Fallthrough bool   `json:"fallthrough,omitempty"`
-	Throw       bool   `json:"throw,omitempty"`
+	// 执行次数
+	Count uint64 `json:"count"`
+	// 是否直落分支
+	Fallthrough bool `json:"fallthrough"`
+	// 是否异常分支
+	Throw bool `json:"throw"`
+
+	blockNo uint32
 }
 
 // IntermediateText 输出中间文本形式

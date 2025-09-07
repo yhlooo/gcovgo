@@ -24,6 +24,8 @@ type RecordFunction struct {
 	StartColumn uint32 `json:",omitempty"`
 	// 函数结束行号
 	EndLineNo uint32 `json:",omitempty"`
+	// 函数结束列号
+	EndColumn uint32 `json:",omitempty"`
 }
 
 var _ encoding.BinaryUnmarshaler = (*RecordFunction)(nil)
@@ -78,6 +80,12 @@ func (r *RecordFunction) UnmarshalBinary(data []byte) error {
 	r.StartLineNo = binary.LittleEndian.Uint32(data[:4])
 	r.StartColumn = binary.LittleEndian.Uint32(data[4:8])
 	r.EndLineNo = binary.LittleEndian.Uint32(data[8:12])
+	data = data[12:]
+
+	if len(data) >= 4 {
+		// 文档中没有提及，但是后面可能还有一个结束列号
+		r.EndColumn = binary.LittleEndian.Uint32(data[0:4])
+	}
 
 	return nil
 }

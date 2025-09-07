@@ -14,6 +14,8 @@ type Raw struct {
 	Version Version
 	// 时间戳
 	Stamp uint32
+	// 当前工作目录
+	CurrenWorkingDirectory string `json:",omitempty"`
 
 	SupportUnexecutedBlocks uint32 // TODO: 应该是 bool 类型？
 
@@ -37,6 +39,14 @@ func (raw *Raw) UnmarshalBinary(data []byte) error {
 	// support_unexecuted_blocks
 	switch raw.Magic {
 	case MagicNote:
+		if raw.Version >= Version9 {
+			cwd, n, err := ParseString(data)
+			if err != nil {
+				return fmt.Errorf("parse cwd error: %w", err)
+			}
+			raw.CurrenWorkingDirectory = cwd
+			data = data[n:]
+		}
 		if raw.Version >= Version8 {
 			if len(data) < 4 {
 				return newDataTooShortError(len(data), 4, "support_unexecuted_blocks")

@@ -70,6 +70,8 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 			Minor:  minor,
 			Status: status,
 		},
+		FormatVersion:          "1",
+		CurrenWorkingDirectory: noteObj.CurrenWorkingDirectory,
 	}
 	filesMap := map[string]*File{}
 	functions := noteObj.FunctionNotes()
@@ -94,6 +96,13 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 			)
 		}
 
+		execBlocks := uint32(0)
+		for i := uint32(2); i < uint32(blocks); i++ {
+			if blk := graph.Get(i); blk != nil && blk.Count() > 0 {
+				execBlocks++
+			}
+		}
+
 		// 记录函数覆盖信息
 		fileName := fn.Function.Source
 		f := filesMap[fileName]
@@ -102,16 +111,17 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 			f = &ret.Files[len(ret.Files)-1]
 			filesMap[fileName] = f
 		}
+
 		f.Functions = append(f.Functions, Function{
 			Name:           fn.Function.Name,
 			StartLine:      fn.Function.StartLineNo,
 			StartColumn:    fn.Function.StartColumn,
 			EndLine:        fn.Function.EndLineNo,
-			EndColumn:      0, // TODO: ...
+			EndColumn:      fn.Function.EndColumn,
 			ExecutionCount: graph.Get(0).Count(),
-			Blocks:         uint32(blocks),
-			BlocksExecuted: 0,  // TODO: ...
-			DemangledName:  "", // TODO: ...
+			Blocks:         uint32(blocks) - 2,
+			BlocksExecuted: execBlocks,
+			DemangledName:  fn.Function.Name, // TODO: 应该不总是与 Name 相同，具体取值来源不确定
 		})
 
 		// 记录行覆盖信息
@@ -138,27 +148,32 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 				}
 
 				// 分支
-				var branches []Branch
+				branches := make([]Branch, 0)
 				if blkOut := blk.Out(); i == len(blkLines.Lines)-1 && len(blkOut) > 1 {
 					// 出边对应分支关联到块中最后一行
 					for _, arc := range blkOut {
-						if arc.Destination().No() == 1 {
+						dstBlkNo := arc.Destination().No()
+						if dstBlkNo == 1 {
 							continue
 						}
 						branches = append(branches, Branch{
 							Count:       arc.Count(),
-							Fallthrough: false, // TODO: ...
+							Fallthrough: arc.Flags()&raw.ArcFlagFallthrough != 0,
 							Throw:       false, // TODO: ...
+							blockNo:     dstBlkNo,
 						})
 					}
 				}
+				sort.Slice(branches, func(i, j int) bool {
+					return branches[i].blockNo < branches[j].blockNo
+				})
 
 				// 行
 				f.Lines = append(f.Lines, Line{
 					LineNumber:      item.LineNo,
 					Count:           blk.Count(),
 					Branches:        branches,
-					UnexecutedBlock: false, // TODO
+					UnexecutedBlock: blk.Count() == 0,
 					FunctionName:    fn.Function.Name,
 				})
 			}
@@ -189,6 +204,7 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 			if line.Count > lastLine.Count {
 				lastLine.Count = line.Count
 			}
+			lastLine.UnexecutedBlock = lastLine.UnexecutedBlock || line.UnexecutedBlock
 			lastLine.Branches = append(lastLine.Branches, line.Branches...)
 		}
 		ret.Files[fileI].Lines = newLines
