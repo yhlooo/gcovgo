@@ -8,6 +8,8 @@ import (
 
 // RecordFunction 函数记录
 type RecordFunction struct {
+	version Version
+
 	// 标识
 	Ident uint32
 
@@ -57,7 +59,7 @@ func (r *RecordFunction) UnmarshalBinary(data []byte) error {
 
 	var err error
 	var n int
-	r.Name, n, err = ParseString(data)
+	r.Name, n, err = ParseString(data, r.version)
 	if err != nil {
 		return fmt.Errorf("parse name error: %w", err)
 	}
@@ -68,7 +70,7 @@ func (r *RecordFunction) UnmarshalBinary(data []byte) error {
 		data = data[4:]
 	}
 
-	r.Source, n, err = ParseString(data)
+	r.Source, n, err = ParseString(data, r.version)
 	if err != nil {
 		return fmt.Errorf("parse source error: %w", err)
 	}

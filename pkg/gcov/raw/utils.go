@@ -8,6 +8,16 @@ import (
 )
 
 // ParseString 解析字符串，返回解析的字符串、占 data 的字节数、解析错误
+func ParseString(data []byte, version Version) (string, int, error) {
+	if version >= Version12 {
+		return ParseString2(data)
+	}
+	return ParseString1(data)
+}
+
+// ParseString1 解析字符串，返回解析的字符串、占 data 的字节数、解析错误
+//
+// 适用于 gcc 4-11
 //
 // 参考：
 //
@@ -16,7 +26,7 @@ import (
 //
 // string: int32:0 | int32:length char* char:0 padding
 // padding: | char:0 | char:0 char:0 | char:0 char:0 char:0
-func ParseString(data []byte) (string, int, error) {
+func ParseString1(data []byte) (string, int, error) {
 	if len(data) < 4 {
 		return "", 0, newDataTooShortError(len(data), 4, "length")
 	}
@@ -29,6 +39,31 @@ func ParseString(data []byte) (string, int, error) {
 	}
 
 	return strings.TrimRight(string(data[:length*4]), "\x00"), int(length)*4 + 4, nil
+}
+
+// ParseString2 解析字符串，返回解析的字符串、占 data 的字节数、解析错误
+//
+// 适用于 gcc >=12
+//
+// 参考：
+//
+// The number of bytes is stored, followed by the string. Zero length and NULL strings are simply stored as a length
+// of zero (they have no trailing NUL).
+//
+// string: int32:0 | int32:length char* char:0
+func ParseString2(data []byte) (string, int, error) {
+	if len(data) < 4 {
+		return "", 0, newDataTooShortError(len(data), 4, "length")
+	}
+
+	length := binary.LittleEndian.Uint32(data[:4])
+	data = data[4:]
+
+	if len(data) < int(length) {
+		return "", 0, newDataTooShortError(len(data), int(length), "content")
+	}
+
+	return strings.TrimRight(string(data[:length]), "\x00"), int(length) + 4, nil
 }
 
 // Bytes 原始字节

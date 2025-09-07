@@ -8,6 +8,8 @@ import (
 
 // Record 记录
 type Record struct {
+	version Version
+
 	// 记录类型标签
 	Tag RecordTag
 	// 记录数据长度（ uint32 的个数）
@@ -41,15 +43,15 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 	r.Tag = RecordTag(binary.LittleEndian.Uint32(data[:4]))
 	r.Length = binary.LittleEndian.Uint32(data[4:8])
 
-	if len(data) < int(r.Length)*4 {
-		return newDataTooShortError(len(data), int(r.Length)*4, "items")
+	if len(data) < r.Size()-8 {
+		return newDataTooShortError(len(data), r.Size()-8, "items")
 	}
-	data = data[8 : 8+int(r.Length)*4]
+	data = data[8:r.Size()]
 
 	var recordData encoding.BinaryUnmarshaler
 	switch r.Tag {
 	case TagFunction:
-		r.Function = &RecordFunction{}
+		r.Function = &RecordFunction{version: r.version}
 		recordData = r.Function
 	case TagBlocks:
 		r.Blocks = &RecordBlocks{}
@@ -58,7 +60,7 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 		r.Arcs = &RecordArcs{}
 		recordData = r.Arcs
 	case TagLines:
-		r.Lines = &RecordLines{}
+		r.Lines = &RecordLines{version: r.version}
 		recordData = r.Lines
 	case TagProgramSummary:
 		r.ProgramSummary = &RecordProgramSummary{}
@@ -76,6 +78,14 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 	}
 
 	return nil
+}
+
+// Size 返回该记录存储字节数
+func (r *Record) Size() int {
+	if r.version >= Version12 {
+		return int(r.Length) + 8
+	}
+	return int(r.Length)*4 + 8
 }
 
 // RecordTag 记录类型标签

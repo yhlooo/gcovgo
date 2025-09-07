@@ -50,6 +50,7 @@ func (v Version) Parse() (major, minor int, status string) {
 }
 
 const (
-	Version8 Version = 'A'<<24 | '8'<<16 | '0'<<8 | '*'
-	Version9 Version = 'A'<<24 | '9'<<16 | '0'<<8 | '*'
+	Version8  Version = 'A'<<24 | '8'<<16 | '0'<<8 | '*'
+	Version9  Version = 'A'<<24 | '9'<<16 | '0'<<8 | '*'
+	Version12 Version = 'B'<<24 | '2'<<16 | '0'<<8 | '*'
 )

@@ -14,6 +14,8 @@ type Raw struct {
 	Version Version
 	// 时间戳
 	Stamp uint32
+	// 校验和
+	Checksum HexUint32
 	// 当前工作目录
 	CurrenWorkingDirectory string `json:",omitempty"`
 
@@ -36,11 +38,19 @@ func (raw *Raw) UnmarshalBinary(data []byte) error {
 	raw.Stamp = binary.LittleEndian.Uint32(data[8:12])
 	data = data[12:]
 
+	if raw.Version >= Version12 {
+		if len(data) < 4 {
+			return newDataTooShortError(len(data), 4, "checksum")
+		}
+		raw.Checksum = HexUint32(binary.LittleEndian.Uint32(data[:4]))
+		data = data[4:]
+	}
+
 	// support_unexecuted_blocks
 	switch raw.Magic {
 	case MagicNote:
 		if raw.Version >= Version9 {
-			cwd, n, err := ParseString(data)
+			cwd, n, err := ParseString(data, raw.Version)
 			if err != nil {
 				return fmt.Errorf("parse cwd error: %w", err)
 			}
@@ -61,12 +71,12 @@ func (raw *Raw) UnmarshalBinary(data []byte) error {
 
 	// records
 	for len(data) >= 8 {
-		record := Record{}
+		record := Record{version: raw.Version}
 		if err := record.UnmarshalBinary(data); err != nil {
 			return fmt.Errorf("unmarshal record %d error: %w", len(raw.Records), err)
 		}
 		raw.Records = append(raw.Records, record)
-		data = data[8+4*int(record.Length):]
+		data = data[record.Size():]
 	}
 
 	return nil

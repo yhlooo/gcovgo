@@ -8,6 +8,8 @@ import (
 
 // RecordLines 行记录
 type RecordLines struct {
+	version Version
+
 	// 块编号
 	BlockNo uint32
 	// 块中的行
@@ -27,25 +29,25 @@ func (r *RecordLines) UnmarshalBinary(data []byte) error {
 	data = data[4:]
 
 	for {
-		fl := FileOrLine{}
+		fl := FileOrLine{version: r.version}
 		if err := fl.UnmarshalBinary(data); err != nil {
 			return fmt.Errorf("unmarshal line %d error: %w", len(r.Lines), err)
 		}
-		if fl.LineNo != 0 {
-			data = data[4:]
-		} else if fl.Filename != "" {
-			fileNameLen := binary.LittleEndian.Uint32(data[4:8])
-			data = data[8+int(fileNameLen)*4:]
-		} else {
+		if fl.LineNo == 0 && fl.Filename == "" {
 			// 解析完了
 			return nil
 		}
+
+		data = data[fl.Size():]
 		r.Lines = append(r.Lines, fl)
 	}
 }
 
 // FileOrLine 行
 type FileOrLine struct {
+	version Version
+	size    int
+
 	// 行号
 	LineNo uint32 `json:",omitempty"`
 	// 行所属文件
@@ -61,6 +63,7 @@ func (fl *FileOrLine) UnmarshalBinary(data []byte) error {
 	}
 	fl.LineNo = binary.LittleEndian.Uint32(data[:4])
 	data = data[4:]
+	fl.size = 4
 
 	if fl.LineNo != 0 {
 		// 行信息
@@ -69,10 +72,17 @@ func (fl *FileOrLine) UnmarshalBinary(data []byte) error {
 
 	// 文件名信息
 	var err error
-	fl.Filename, _, err = ParseString(data)
+	var n int
+	fl.Filename, n, err = ParseString(data, fl.version)
 	if err != nil {
 		return fmt.Errorf("parse filename error: %w", err)
 	}
+	fl.size += n
 
 	return nil
+}
+
+// Size 返回该记录存储字节数
+func (fl *FileOrLine) Size() int {
+	return fl.size
 }
