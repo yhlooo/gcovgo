@@ -3,12 +3,16 @@ package gcovgo
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime/pprof"
+	"strings"
 
 	"github.com/bombsimon/logrusr/v4"
 	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/yhlooo/gcovgo/pkg/gcov"
 )
 
 // NewCommand 创建根命令
@@ -18,9 +22,10 @@ func NewCommand(name string) *cobra.Command {
 
 	var cpuProfileOutput *os.File
 	cmd := &cobra.Command{
-		Use:          name,
+		Use:          name + " {SOURCE|OBJ}...",
 		Short:        "GCC code coverage tool",
 		SilenceUsage: true,
+		Args:         cobra.MinimumNArgs(1),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// 设置日志
 			setLogger(cmd, verbosity)
@@ -38,7 +43,37 @@ func NewCommand(name string) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
+			ctx := cmd.Context()
+			logger := logr.FromContextOrDiscard(ctx)
+
+			resolvedNoteFiles := map[string]bool{}
+			for _, fileName := range args {
+				fileName = strings.TrimSuffix(fileName, filepath.Ext(fileName))
+				noteFileName := fileName + ".gcno"
+				if resolvedNoteFiles[noteFileName] {
+					continue
+				}
+				resolvedNoteFiles[noteFileName] = true
+
+				dataFileName := fileName + ".gcda"
+				if _, err := os.Stat(dataFileName); err != nil {
+					if !os.IsNotExist(err) {
+						logger.Error(err, fmt.Sprintf("get data file %q info error", dataFileName))
+						continue
+					}
+					dataFileName = ""
+				}
+
+				ret, err := gcov.ResolveBinaryFile(noteFileName, dataFileName)
+				if err != nil {
+					logger.Error(err, fmt.Sprintf("resolve %q error", noteFileName))
+					continue
+				}
+
+				fmt.Println(ret.IntermediateText())
+			}
+
+			return nil
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 			if cpuProfileOutput != nil {

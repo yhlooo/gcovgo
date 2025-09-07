@@ -1,9 +1,9 @@
 package cfg
 
-import gcovraw "github.com/yhlooo/gcovgo/pkg/gcov/raw"
+import "github.com/yhlooo/gcovgo/pkg/gcov/raw"
 
 // BuildCFG 构建控制流图
-func BuildCFG(n int, blockArcs []gcovraw.RecordArcs, counts []uint64) (CFG, error) {
+func BuildCFG(n int, blockArcs []*raw.RecordArcs, counts []uint64) (CFG, error) {
 	cfg := make(CFG, n)
 	for i := range cfg {
 		cfg[i].no = uint32(i)
@@ -12,7 +12,7 @@ func BuildCFG(n int, blockArcs []gcovraw.RecordArcs, counts []uint64) (CFG, erro
 	var setCountArcs []*Arc
 	for _, b := range blockArcs {
 		for _, arc := range b.Arcs {
-			outArc := NewArc(cfg.Get(b.BlockNo), cfg.Get(arc.DestBlock))
+			outArc := NewArc(cfg.Get(b.BlockNo), cfg.Get(arc.DestBlock), arc.Flags)
 			if !arc.Flags.OnTree() {
 				setCountArcs = append(setCountArcs, outArc)
 			}
@@ -141,10 +141,11 @@ func (blk *Block) Resolve() bool {
 }
 
 // NewArc 创建边
-func NewArc(src, dst *Block) *Arc {
+func NewArc(src, dst *Block, flags raw.ArcFlag) *Arc {
 	arc := &Arc{
-		src: src,
-		dst: dst,
+		src:   src,
+		dst:   dst,
+		flags: flags,
 	}
 	src.out = append(src.out, arc)
 	dst.in = append(dst.in, arc)
@@ -157,6 +158,8 @@ type Arc struct {
 	count uint64
 	// 执行次数是否已确定
 	resolved bool
+	// 边属性
+	flags raw.ArcFlag
 
 	// 源块
 	src *Block
@@ -172,6 +175,11 @@ func (arc *Arc) Count() uint64 {
 // Resolved 返回执行次数是否已确定
 func (arc *Arc) Resolved() bool {
 	return arc.resolved
+}
+
+// Flags 返回边属性
+func (arc *Arc) Flags() raw.ArcFlag {
+	return arc.flags
 }
 
 // Source 返回源块
