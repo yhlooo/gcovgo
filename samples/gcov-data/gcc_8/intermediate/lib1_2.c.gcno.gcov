@@ -1,0 +1,6 @@
+version:8.5.0
+file:/workdir/src/path/to/lib1/lib1_2.c
+function:3,6,0,func3
+lcount:3,0,1
+lcount:4,0,1
+lcount:5,0,1

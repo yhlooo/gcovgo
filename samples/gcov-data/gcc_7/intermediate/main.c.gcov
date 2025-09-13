@@ -1,0 +1,17 @@
+file:/workdir/src/main.c
+function:6,1,main
+lcount:6,1
+lcount:7,1
+lcount:9,14
+branch:9,taken
+branch:9,taken
+lcount:10,13
+lcount:13,1
+lcount:14,1
+lcount:15,1
+lcount:16,1
+lcount:17,1
+lcount:19,1
+lcount:21,1
+lcount:22,1
+lcount:24,1

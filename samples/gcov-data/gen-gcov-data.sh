@@ -47,6 +47,8 @@ for img in ${gcc_images[*]}; do
 
   rm -rf "${output_root}/${output_dir}"
   mkdir -p "${output_root}/${output_dir}"
+  mkdir -p "${output_root}/${output_dir}/intermediate"
+  mkdir -p "${output_root}/${output_dir}/human_readable"
   $_docker run \
     -it \
     --platform linux/amd64 \
@@ -58,4 +60,13 @@ for img in ${gcc_images[*]}; do
     --workdir "/workdir" \
     "${img}" \
     bash -c 'sh /workdir/cmake-3.26.6-linux-x86_64.sh --skip-license --prefix=/usr/local && export PATH=/usr/local/cmake-3.26.6-linux-x86_64/bin:${PATH} && cmake . && make hello && GCOV_PREFIX=/output bin/hello && find . -name "*.gcno" -exec cp --parents -t /output/workdir {} +'
+  $_docker run \
+    -it \
+    --platform linux/amd64 \
+    --rm \
+    -v "${output_root}/${output_dir}:/workdir" \
+    -v "${code_root}/src:/workdir/src:ro" \
+    --workdir "/workdir" \
+    "${img}" \
+    bash -c "cd intermediate && find .. -name '*.gcno' -exec gcov -ib {} \; && cd ../human_readable && find .. -name '*.gcno' -exec gcov -b {} \;"
 done

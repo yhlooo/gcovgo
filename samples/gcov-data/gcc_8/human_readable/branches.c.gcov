@@ -1,0 +1,116 @@
+        -:    0:Source:/workdir/src/branches/branches.c
+        -:    0:Graph:../CMakeFiles/branches.dir/src/branches/branches.c.gcno
+        -:    0:Data:../CMakeFiles/branches.dir/src/branches/branches.c.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:// switch 样例
+function sample_switch called 13 returned 100% blocks executed 100%
+       13:    2:int sample_switch(int in) {
+       13:    3:    int ret = 0;
+       13:    4:    switch (in) {
+branch  0 taken 8%
+branch  1 taken 8%
+branch  2 taken 8%
+branch  3 taken 8%
+branch  4 taken 8%
+branch  5 taken 62%
+        1:    5:    case 1:
+        1:    6:        ret = 1;
+        1:    7:        break;
+        1:    8:    case 2:
+        1:    9:        ret = 2;
+        1:   10:        break;
+        1:   11:    case 10:
+        -:   12:        // += 10
+        1:   13:        ret--;
+        2:   14:    case 11:
+        -:   15:        // += 11
+        2:   16:        ret--;
+        3:   17:    case 12:
+        3:   18:        ret += 12;
+        3:   19:        break;
+        -:   20:    }
+        -:   21:
+       13:   22:    return ret;
+        -:   23:}
+        -:   24:
+        -:   25:// if 样例
+function sample_if called 5 returned 100% blocks executed 92%
+        5:   26:int sample_if(int in) {
+        5:   27:    if (in > 10) {
+branch  0 taken 60% (fallthrough)
+branch  1 taken 40%
+        3:   28:        if (in % 10 == 0 || in % 3 == 0) {
+branch  0 taken 67% (fallthrough)
+branch  1 taken 33%
+branch  2 taken 50% (fallthrough)
+branch  3 taken 50%
+        2:   29:            return 11;
+        -:   30:        }
+        1:   31:        return 10;
+        2:   32:    } else if (in > 5) {
+branch  0 taken 50% (fallthrough)
+branch  1 taken 50%
+        1:   33:        int ret = 20 + (in % 10);
+        1:   34:        if (in > 7 && in % 2 == 0) {
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+branch  2 taken 100% (fallthrough)
+branch  3 taken 0%
+        1:   35:            ret -= 5;
+        -:   36:        } else {
+    #####:   37:            ret -= 5;
+    #####:   38:            ret += 7;
+        -:   39:        }
+        1:   40:        return ret;
+        -:   41:    } else {
+        -:   42:        // empty
+        -:   43:    }
+        -:   44:
+        1:   45:    return 30;
+        -:   46:}
+        -:   47:
+        -:   48:// 循环样例
+function sample_loop called 1 returned 100% blocks executed 100%
+        1:   49:int sample_loop(int in) {
+       11:   50:    for (int i = 0; i < 10; i++) {
+branch  0 taken 91%
+branch  1 taken 9% (fallthrough)
+       10:   51:        in += i;
+       10:   52:        in %= 10;
+      110:   53:        for (int j = 0; j < 10; j++) {
+branch  0 taken 91%
+branch  1 taken 9% (fallthrough)
+      100:   54:            in += j * 10;
+      100:   55:            if (j == 5) {
+branch  0 taken 10% (fallthrough)
+branch  1 taken 90%
+       10:   56:                continue;
+        -:   57:            }
+        -:   58:        }
+        -:   59:    }
+        -:   60:
+        1:   61:    int i = 10;
+        -:   62:    do {
+    65546:   63:        i--;
+    65546:   64:        in -= i;
+    65546:   65:    } while (in > 0 || i > 0);
+branch  0 taken 99%
+branch  1 taken 1% (fallthrough)
+branch  2 taken 0%
+branch  3 taken 100% (fallthrough)
+        -:   66:
+      414:   67:    while (i < 100) {
+branch  0 taken 100%
+branch  1 taken 0% (fallthrough)
+      414:   68:        i++;
+      414:   69:        in %= i;
+      414:   70:        if (in == 0) {
+branch  0 taken 1% (fallthrough)
+branch  1 taken 99%
+        1:   71:            break;
+        -:   72:        }
+        -:   73:    }
+        -:   74:
+        1:   75:    return in;
+        -:   76:}
