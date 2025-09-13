@@ -119,6 +119,7 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 			EndLine:        fn.Function.EndLineNo,
 			EndColumn:      fn.Function.EndColumn,
 			ExecutionCount: graph.Get(0).Count(),
+			ReturnCount:    graph.Get(1).Count(),
 			Blocks:         uint32(blocks) - 2,
 			BlocksExecuted: execBlocks,
 			DemangledName:  fn.Function.Name, // TODO: 应该不总是与 Name 相同，具体取值来源不确定

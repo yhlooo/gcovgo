@@ -20,7 +20,7 @@ import (
 func NewCommand(name string) *cobra.Command {
 	verbosity := 0
 	cpuProfile := ""
-	outputFormat := "gcov"
+	outputFormat := "human-readable"
 	outputFile := ""
 
 	var cpuProfileOutput *os.File
@@ -84,16 +84,20 @@ func NewCommand(name string) *cobra.Command {
 					continue
 				}
 				ret.DataFile = fileName
+				ret.GcovNoteFile = noteFileName
+				ret.GcovDataFile = dataFileName
 
 				var outputContent []byte
 				switch outputFormat {
-				case "gcov":
-					outputContent = []byte(ret.IntermediateText())
+				case "text":
+					outputContent = []byte(ret.IntermediateText(ctx))
 				case "json":
 					outputContent, err = json.MarshalIndent(ret, "", "  ")
 					if err != nil {
 						return fmt.Errorf("marshal result to json error: %w", err)
 					}
+				case "human-readable":
+					outputContent = []byte(ret.HumanReadableText(ctx))
 				default:
 					return fmt.Errorf("unknown output format: %q", outputFormat)
 				}
@@ -120,10 +124,12 @@ func NewCommand(name string) *cobra.Command {
 	globalFlags.IntVarP(&verbosity, "verbose", "v", verbosity, "Number for the log level verbosity (0, 1, or 2)")
 	globalFlags.StringVar(&cpuProfile, "cpu-profile", cpuProfile, "Write a CPU profile to the specified file")
 	fs := cmd.Flags()
-	fs.StringVarP(&outputFormat, "format", "f", outputFormat, "Output format, one of 'gcov' or 'json'")
+	fs.StringVarP(&outputFormat, "format", "f", outputFormat, `Output format, one of:
+  human-readable : human readable format
+  text           : intermediate text format
+  json           : intermediate JSON format
+`)
 	fs.StringVarP(&outputFile, "output", "o", outputFile, "Write output to file instead of stdout")
-
-	//cmd.AddGroup()
 
 	// 添加子命令
 	cmd.AddCommand(

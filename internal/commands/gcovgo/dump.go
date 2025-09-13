@@ -48,7 +48,7 @@ func newDumpCommand() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("marshal gcov raw to json error: %w", err)
 				}
-			case "gcov":
+			case "human-readable":
 				// TODO
 				fallthrough
 			default:
@@ -64,7 +64,7 @@ func newDumpCommand() *cobra.Command {
 
 	// 绑定选项到命令行参数
 	fs := cmd.Flags()
-	fs.StringVarP(&outputFormat, "format", "f", outputFormat, "Output format, one of 'gcov' or 'json'")
+	fs.StringVarP(&outputFormat, "format", "f", outputFormat, "Output format, one of (human-readable, json)")
 	fs.StringVarP(&outputFile, "output", "o", outputFile, "Write output to file instead of stdout")
 
 	return cmd

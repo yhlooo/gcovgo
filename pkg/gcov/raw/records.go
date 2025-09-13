@@ -43,8 +43,8 @@ func (r *Record) UnmarshalBinary(data []byte) error {
 	r.Tag = RecordTag(binary.LittleEndian.Uint32(data[:4]))
 	r.Length = binary.LittleEndian.Uint32(data[4:8])
 
-	if len(data) < r.Size()-8 {
-		return newDataTooShortError(len(data), r.Size()-8, "items")
+	if len(data) < r.Size() {
+		return newDataTooShortError(len(data), r.Size(), "items")
 	}
 	data = data[8:r.Size()]
 

@@ -1,8 +1,14 @@
 package gcov
 
 import (
+	"context"
 	"encoding"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/go-logr/logr"
 )
 
 // CoverageInfo 覆盖情况信息
@@ -11,8 +17,12 @@ type CoverageInfo struct {
 	GCCVersion Version `json:"gcc_version"`
 	// 格式版本
 	FormatVersion string `json:"format_version,omitempty"`
-	// GCDA 文件名
+	// 处理的数据文件名
 	DataFile string `json:"data_file,omitempty"`
+	// gcov note 文件名
+	GcovNoteFile string `json:"-"`
+	// gcov data 文件名
+	GcovDataFile string `json:"-"`
 	// 执行解析的工作目录
 	CurrenWorkingDirectory string `json:"current_working_directory,omitempty"`
 	// 文件覆盖情况
@@ -20,10 +30,31 @@ type CoverageInfo struct {
 }
 
 // IntermediateText 输出中间文本形式
-func (info *CoverageInfo) IntermediateText() string {
-	ret := info.GCCVersion.IntermediateText()
+func (info *CoverageInfo) IntermediateText(ctx context.Context) string {
+	ret := info.GCCVersion.IntermediateText(ctx)
 	for _, file := range info.Files {
-		ret += file.IntermediateText()
+		ret += file.IntermediateText(ctx)
+	}
+	return ret
+}
+
+// HumanReadableText 输出人类可读的文本形式
+func (info *CoverageInfo) HumanReadableText(ctx context.Context) string {
+	logger := logr.FromContextOrDiscard(ctx)
+
+	ret := ""
+	for _, file := range info.Files {
+		fileContent, err := os.ReadFile(file.Filename)
+		if err != nil {
+			logger.Info(fmt.Sprintf("WARN: read file %q error: %v", file.Filename, err))
+		}
+		ret += fmt.Sprintf(`        -:    0:Source:%s
+        -:    0:Graph:%s
+        -:    0:Data:%s
+        -:    0:Runs:1
+        -:    0:Programs:1
+`, file.Filename, info.GcovNoteFile, info.GcovDataFile)
+		ret += file.HumanReadableText(ctx, fileContent)
 	}
 	return ret
 }
@@ -43,7 +74,7 @@ var _ fmt.Stringer = (*Version)(nil)
 var _ encoding.TextMarshaler = (*Version)(nil)
 
 // IntermediateText 输出中间文本形式
-func (v *Version) IntermediateText() string {
+func (v *Version) IntermediateText(_ context.Context) string {
 	return fmt.Sprintf("version:%s\n", v.String())
 }
 
@@ -68,14 +99,63 @@ type File struct {
 }
 
 // IntermediateText 输出中间文本形式
-func (f *File) IntermediateText() string {
+func (f *File) IntermediateText(ctx context.Context) string {
 	ret := fmt.Sprintf("file:%s\n", f.Filename)
 	for _, fn := range f.Functions {
-		ret += fn.IntermediateText()
+		ret += fn.IntermediateText(ctx)
 	}
 	for _, ln := range f.Lines {
-		ret += ln.IntermediateText()
+		ret += ln.IntermediateText(ctx)
 	}
+	return ret
+}
+
+// HumanReadableText 输出人类可读的文本形式
+func (f *File) HumanReadableText(ctx context.Context, content []byte) string {
+	lines := strings.Split(string(content), "\n")
+	linesN := len(lines)
+	if len(f.Lines) > 0 && int(f.Lines[len(f.Lines)-1].LineNumber) > linesN {
+		linesN = int(f.Lines[len(f.Lines)-1].LineNumber)
+	}
+
+	fnI := 0
+	lnI := 0
+
+	ret := ""
+	for i := 0; i < linesN; i++ {
+		// 获取行内容
+		lnContent := "/*EOF*/"
+		if i < len(lines) {
+			lnContent = lines[i]
+		}
+
+		// 获取行执行次数和分支信息
+		count := "-"
+		var brs []Branch
+		if lnI < len(f.Lines) {
+			ln := f.Lines[lnI]
+			if ln.LineNumber == uint32(i+1) {
+				count = strconv.FormatUint(ln.Count, 10)
+				brs = ln.Branches
+				lnI++
+			}
+		}
+
+		// 获取分支信息
+		if fnI < len(f.Functions) {
+			fn := f.Functions[fnI]
+			if fn.StartLine == uint32(i+1) {
+				ret += fn.HumanReadableText(ctx)
+				fnI++
+			}
+		}
+
+		ret += fmt.Sprintf("%9s:%5d:%s\n", count, i+1, lnContent)
+		for j, br := range brs {
+			ret += br.HumanReadableText(ctx, j)
+		}
+	}
+
 	return ret
 }
 
@@ -101,11 +181,24 @@ type Function struct {
 	BlocksExecuted uint32 `json:"blocks_executed"`
 	// 函数执行次数
 	ExecutionCount uint64 `json:"execution_count"`
+	// 函数返回次数
+	ReturnCount uint64 `json:"-"`
 }
 
 // IntermediateText 输出中间文本形式
-func (fn *Function) IntermediateText() string {
+func (fn *Function) IntermediateText(_ context.Context) string {
 	return fmt.Sprintf("function:%d,%d,%d,%s\n", fn.StartLine, fn.EndLine, fn.ExecutionCount, fn.Name)
+}
+
+// HumanReadableText 输出人类可读的文本形式
+func (fn *Function) HumanReadableText(_ context.Context) string {
+	return fmt.Sprintf(
+		"function %s called %d returned %d%% blocks executed %d%%\n",
+		fn.Name,
+		fn.ExecutionCount,
+		fn.ReturnCount*100/fn.ExecutionCount,
+		fn.BlocksExecuted*100/fn.Blocks,
+	)
 }
 
 // Line 覆盖情况信息
@@ -123,14 +216,14 @@ type Line struct {
 }
 
 // IntermediateText 输出中间文本形式
-func (ln *Line) IntermediateText() string {
+func (ln *Line) IntermediateText(ctx context.Context) string {
 	unexecutedBlock := "0"
 	if ln.UnexecutedBlock {
 		unexecutedBlock = "1"
 	}
 	ret := fmt.Sprintf("lcount:%d,%d,%s\n", ln.LineNumber, ln.Count, unexecutedBlock)
 	for _, br := range ln.Branches {
-		ret += br.IntermediateText(ln.LineNumber)
+		ret += br.IntermediateText(ctx, ln.LineNumber)
 	}
 	return ret
 }
@@ -148,11 +241,20 @@ type Branch struct {
 }
 
 // IntermediateText 输出中间文本形式
-func (br *Branch) IntermediateText(lineNo uint32) string {
+func (br *Branch) IntermediateText(_ context.Context, lineNo uint32) string {
 	coverageType := "nottaken"
 	if br.Count > 0 {
 		coverageType = "taken"
 	}
 	// TODO: notexec
 	return fmt.Sprintf("branch:%d,%s\n", lineNo, coverageType)
+}
+
+// HumanReadableText 输出人类可读的文本形式
+func (br *Branch) HumanReadableText(_ context.Context, i int) string {
+	suffix := ""
+	if br.Fallthrough {
+		suffix = " (fallthrough)"
+	}
+	return fmt.Sprintf("branch %2d taken %d%s\n", i, br.Count, suffix)
 }
