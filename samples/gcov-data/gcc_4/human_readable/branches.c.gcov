@@ -8,12 +8,12 @@ function sample_switch called 13 returned 100% blocks executed 100%
        13:    2:int sample_switch(int in) {
        13:    3:    int ret = 0;
        13:    4:    switch (in) {
-branch  0 taken 8%
-branch  1 taken 8%
-branch  2 taken 8%
-branch  3 taken 8%
-branch  4 taken 8%
-branch  5 taken 62%
+branch  0 taken 1
+branch  1 taken 1
+branch  2 taken 1
+branch  3 taken 1
+branch  4 taken 1
+branch  5 taken 8
         -:    5:    case 1:
         1:    6:        ret = 1;
         1:    7:        break;
@@ -38,25 +38,25 @@ branch  5 taken 62%
 function sample_if called 5 returned 100% blocks executed 92%
         5:   26:int sample_if(int in) {
         5:   27:    if (in > 10) {
-branch  0 taken 60% (fallthrough)
-branch  1 taken 40%
+branch  0 taken 3 (fallthrough)
+branch  1 taken 2
         3:   28:        if (in % 10 == 0 || in % 3 == 0) {
-branch  0 taken 67% (fallthrough)
-branch  1 taken 33%
-branch  2 taken 50% (fallthrough)
-branch  3 taken 50%
+branch  0 taken 2 (fallthrough)
+branch  1 taken 1
+branch  2 taken 1 (fallthrough)
+branch  3 taken 1
         2:   29:            return 11;
         -:   30:        }
         1:   31:        return 10;
         2:   32:    } else if (in > 5) {
-branch  0 taken 50% (fallthrough)
-branch  1 taken 50%
+branch  0 taken 1 (fallthrough)
+branch  1 taken 1
         1:   33:        int ret = 20 + (in % 10);
         1:   34:        if (in > 7 && in % 2 == 0) {
-branch  0 taken 100% (fallthrough)
-branch  1 taken 0%
-branch  2 taken 100% (fallthrough)
-branch  3 taken 0%
+branch  0 taken 1 (fallthrough)
+branch  1 taken 0
+branch  2 taken 1 (fallthrough)
+branch  3 taken 0
         1:   35:            ret -= 5;
         -:   36:        } else {
     #####:   37:            ret -= 5;
@@ -74,17 +74,17 @@ branch  3 taken 0%
 function sample_loop called 1 returned 100% blocks executed 100%
         1:   49:int sample_loop(int in) {
        11:   50:    for (int i = 0; i < 10; i++) {
-branch  0 taken 91%
-branch  1 taken 9% (fallthrough)
+branch  0 taken 10
+branch  1 taken 1 (fallthrough)
        10:   51:        in += i;
        10:   52:        in %= 10;
       110:   53:        for (int j = 0; j < 10; j++) {
-branch  0 taken 91%
-branch  1 taken 9% (fallthrough)
+branch  0 taken 100
+branch  1 taken 10 (fallthrough)
       100:   54:            in += j * 10;
       100:   55:            if (j == 5) {
-branch  0 taken 10% (fallthrough)
-branch  1 taken 90%
+branch  0 taken 10 (fallthrough)
+branch  1 taken 90
        10:   56:                continue;
         -:   57:            }
         -:   58:        }
@@ -95,19 +95,19 @@ branch  1 taken 90%
     65546:   63:        i--;
     65546:   64:        in -= i;
     65546:   65:    } while (in > 0 || i > 0);
-branch  0 taken 99%
-branch  1 taken 1% (fallthrough)
-branch  2 taken 0%
-branch  3 taken 100% (fallthrough)
+branch  0 taken 65545
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0
+branch  3 taken 1 (fallthrough)
         -:   66:
       415:   67:    while (i < 100) {
-branch  0 taken 100%
-branch  1 taken 0% (fallthrough)
+branch  0 taken 414
+branch  1 taken 0 (fallthrough)
       414:   68:        i++;
       414:   69:        in %= i;
       414:   70:        if (in == 0) {
-branch  0 taken 1% (fallthrough)
-branch  1 taken 99%
+branch  0 taken 1 (fallthrough)
+branch  1 taken 413
         1:   71:            break;
         -:   72:        }
         -:   73:    }

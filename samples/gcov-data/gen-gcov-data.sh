@@ -68,5 +68,5 @@ for img in ${gcc_images[*]}; do
     -v "${code_root}/src:/workdir/src:ro" \
     --workdir "/workdir" \
     "${img}" \
-    bash -c "cd intermediate && find .. -name '*.gcno' -exec gcov -ib {} \; && cd ../human_readable && find .. -name '*.gcno' -exec gcov -b {} \;"
+    bash -c "cd intermediate && find .. -name '*.gcno' -exec gcov -ib {} \; && cd ../human_readable && find .. -name '*.gcno' -exec gcov -bc {} \;"
 done
