@@ -76,13 +76,22 @@ func (r *RecordFunction) UnmarshalBinary(data []byte) error {
 	}
 	data = data[n:]
 
-	if len(data) < 12 {
-		return newDataTooShortError(len(data), 12, "start_lineno, start_column and end_lineno")
+	if len(data) < 4 {
+		return newDataTooShortError(len(data), 4, "start_lineno")
 	}
 	r.StartLineNo = binary.LittleEndian.Uint32(data[:4])
-	r.StartColumn = binary.LittleEndian.Uint32(data[4:8])
-	r.EndLineNo = binary.LittleEndian.Uint32(data[8:12])
-	data = data[12:]
+	data = data[4:]
+
+	if r.version < Version8 {
+		return nil
+	}
+
+	if len(data) < 8 {
+		return newDataTooShortError(len(data), 8, "start_column and end_lineno")
+	}
+	r.StartColumn = binary.LittleEndian.Uint32(data[:4])
+	r.EndLineNo = binary.LittleEndian.Uint32(data[4:8])
+	data = data[8:]
 
 	if len(data) >= 4 {
 		// 文档中没有提及，但是后面可能还有一个结束列号
