@@ -82,7 +82,7 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 
 		// 计算函数控制流图
 		blocks := len(fn.Arcs) + 1
-		if fn.Blocks != nil && len(fn.Blocks.Flags) > 0 {
+		if major >= 8 && fn.Blocks != nil && len(fn.Blocks.Flags) > 0 {
 			blocks = int(fn.Blocks.Flags[0])
 		}
 		if blocks <= 0 {
