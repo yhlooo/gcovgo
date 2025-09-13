@@ -16,10 +16,11 @@ builds:
     goarch:
       - amd64
       - arm64
+    flags:
+      - "-buildvcs"
     ldflags:
       - "-X github.com/yhlooo/gcovgo/pkg/version.version={{ .Version }}"
       - "-w"
-      - "-buildvcs"
 
 archives:
   - format: "tar.gz"
