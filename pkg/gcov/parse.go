@@ -149,12 +149,14 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 				}
 
 				// 分支
+				call := false
 				branches := make([]Branch, 0)
 				if blkOut := blk.Out(); i == len(blkLines.Lines)-1 && len(blkOut) > 1 {
 					// 出边对应分支关联到块中最后一行
 					for _, arc := range blkOut {
 						dstBlkNo := arc.Destination().No()
 						if dstBlkNo == 1 {
+							call = true
 							continue
 						}
 						branches = append(branches, Branch{
@@ -168,12 +170,18 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 				sort.Slice(branches, func(i, j int) bool {
 					return branches[i].blockNo < branches[j].blockNo
 				})
+				var callBranches []Branch
+				if call {
+					callBranches = branches
+					branches = nil
+				}
 
 				// 行
 				f.Lines = append(f.Lines, Line{
 					LineNumber:      item.LineNo,
 					Count:           blk.Count(),
 					Branches:        branches,
+					CallBranches:    callBranches,
 					UnexecutedBlock: blk.Count() == 0,
 					FunctionName:    fn.Function.Name,
 				})
@@ -207,6 +215,7 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 			}
 			lastLine.UnexecutedBlock = lastLine.UnexecutedBlock || line.UnexecutedBlock
 			lastLine.Branches = append(lastLine.Branches, line.Branches...)
+			lastLine.CallBranches = append(lastLine.CallBranches, line.CallBranches...)
 		}
 		ret.Files[fileI].Lines = newLines
 	}

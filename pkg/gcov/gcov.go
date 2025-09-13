@@ -112,7 +112,7 @@ func (f *File) IntermediateText(ctx context.Context) string {
 
 // HumanReadableText 输出人类可读的文本形式
 func (f *File) HumanReadableText(ctx context.Context, content []byte) string {
-	lines := strings.Split(string(content), "\n")
+	lines := strings.Split(strings.TrimSuffix(string(content), "\n"), "\n")
 	linesN := len(lines)
 	if len(f.Lines) > 0 && int(f.Lines[len(f.Lines)-1].LineNumber) > linesN {
 		linesN = int(f.Lines[len(f.Lines)-1].LineNumber)
@@ -132,11 +132,13 @@ func (f *File) HumanReadableText(ctx context.Context, content []byte) string {
 		// 获取行执行次数和分支信息
 		count := "-"
 		var brs []Branch
+		var calls []Branch
 		if lnI < len(f.Lines) {
 			ln := f.Lines[lnI]
 			if ln.LineNumber == uint32(i+1) {
 				count = strconv.FormatUint(ln.Count, 10)
 				brs = ln.Branches
+				calls = ln.CallBranches
 				lnI++
 			}
 		}
@@ -150,9 +152,12 @@ func (f *File) HumanReadableText(ctx context.Context, content []byte) string {
 			}
 		}
 
-		ret += fmt.Sprintf("%9s:%5d:%s\n", count, i+1, lnContent)
+		ret += fmt.Sprintf(" %8s: %4d:%s\n", count, i+1, lnContent)
 		for j, br := range brs {
-			ret += br.HumanReadableText(ctx, j)
+			ret += br.HumanReadableText(ctx, j, false)
+		}
+		for j, br := range calls {
+			ret += br.HumanReadableText(ctx, j, true)
 		}
 	}
 
@@ -209,6 +214,8 @@ type Line struct {
 	Count uint64 `json:"count"`
 	// 分支
 	Branches []Branch `json:"branches"`
+	// 调用其它函数分支
+	CallBranches []Branch `json:"-"`
 	// 该行是否包含未执行的块
 	UnexecutedBlock bool `json:"unexecuted_block"`
 	// 函数名
@@ -251,7 +258,10 @@ func (br *Branch) IntermediateText(_ context.Context, lineNo uint32) string {
 }
 
 // HumanReadableText 输出人类可读的文本形式
-func (br *Branch) HumanReadableText(_ context.Context, i int) string {
+func (br *Branch) HumanReadableText(_ context.Context, i int, call bool) string {
+	if call {
+		return fmt.Sprintf("call %4d returned %d\n", i, br.Count)
+	}
 	suffix := ""
 	if br.Fallthrough {
 		suffix = " (fallthrough)"
