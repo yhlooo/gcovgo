@@ -3,6 +3,8 @@ package resolvecov
 import (
 	"encoding/json"
 	"io"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -52,6 +54,7 @@ func testResolveSingleCoverage(item gcovdata.Item) func(t *testing.T) {
 			r.NoError(err)
 
 			if item.IntermediaJSON {
+				info.DataFile = filepath.Join("..", strings.TrimPrefix(item.NoteFile, item.Root+"/"))
 				infoJSON, err := json.Marshal(info)
 				r.NoError(err)
 				a.JSONEq(string(expected), string(infoJSON))

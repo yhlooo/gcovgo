@@ -173,7 +173,7 @@ func ResolveBinary(note, data io.Reader) (*CoverageInfo, error) {
 				var callBranches []Branch
 				if call {
 					callBranches = branches
-					branches = nil
+					branches = make([]Branch, 0)
 				}
 
 				// 行

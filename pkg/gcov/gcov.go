@@ -31,6 +31,8 @@ type CoverageInfo struct {
 
 // IntermediateText 输出中间文本形式
 func (info *CoverageInfo) IntermediateText(ctx context.Context) string {
+	ctx = ContextWithGCCVersion(ctx, info.GCCVersion)
+
 	ret := info.GCCVersion.IntermediateText(ctx)
 	for _, file := range info.Files {
 		ret += file.IntermediateText(ctx)
@@ -74,7 +76,10 @@ var _ fmt.Stringer = (*Version)(nil)
 var _ encoding.TextMarshaler = (*Version)(nil)
 
 // IntermediateText 输出中间文本形式
-func (v *Version) IntermediateText(_ context.Context) string {
+func (v *Version) IntermediateText(ctx context.Context) string {
+	if version := GCCVersionFromContext(ctx); version.Major < 8 {
+		return ""
+	}
 	return fmt.Sprintf("version:%s\n", v.String())
 }
 
@@ -191,7 +196,10 @@ type Function struct {
 }
 
 // IntermediateText 输出中间文本形式
-func (fn *Function) IntermediateText(_ context.Context) string {
+func (fn *Function) IntermediateText(ctx context.Context) string {
+	if version := GCCVersionFromContext(ctx); version.Major < 8 {
+		return fmt.Sprintf("function:%d,%d,%s\n", fn.StartLine, fn.ExecutionCount, fn.Name)
+	}
 	return fmt.Sprintf("function:%d,%d,%d,%s\n", fn.StartLine, fn.EndLine, fn.ExecutionCount, fn.Name)
 }
 
@@ -233,7 +241,12 @@ func (ln *Line) IntermediateText(ctx context.Context) string {
 	if ln.UnexecutedBlock {
 		unexecutedBlock = "1"
 	}
-	ret := fmt.Sprintf("lcount:%d,%d,%s\n", ln.LineNumber, ln.Count, unexecutedBlock)
+	var ret string
+	if version := GCCVersionFromContext(ctx); version.Major < 8 {
+		ret = fmt.Sprintf("lcount:%d,%d\n", ln.LineNumber, ln.Count)
+	} else {
+		ret = fmt.Sprintf("lcount:%d,%d,%s\n", ln.LineNumber, ln.Count, unexecutedBlock)
+	}
 	for _, br := range ln.Branches {
 		ret += br.IntermediateText(ctx, ln.LineNumber)
 	}

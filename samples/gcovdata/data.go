@@ -21,6 +21,9 @@ var Data []Item
 
 // Item gcov 测试数据项
 type Item struct {
+	// 所在数据根目录
+	Root string
+
 	// .gcno 文件路径
 	NoteFile string
 	// .gcda 文件路径
@@ -77,6 +80,7 @@ func walkDataDir(root string) ([]Item, error) {
 			}
 
 			data := Item{
+				Root:                    root,
 				NoteFile:                path,
 				DataFile:                "",
 				HumanReadableOutputFile: "",
