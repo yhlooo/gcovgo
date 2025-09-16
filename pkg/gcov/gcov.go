@@ -197,12 +197,17 @@ func (fn *Function) IntermediateText(_ context.Context) string {
 
 // HumanReadableText 输出人类可读的文本形式
 func (fn *Function) HumanReadableText(_ context.Context) string {
+	returned := uint64(0)
+	if fn.ExecutionCount != 0 {
+		returned = fn.ReturnCount * 100 / fn.ExecutionCount
+	}
+	executed := uint32(0)
+	if fn.Blocks != 0 {
+		executed = fn.BlocksExecuted * 100 / fn.Blocks
+	}
 	return fmt.Sprintf(
 		"function %s called %d returned %d%% blocks executed %d%%\n",
-		fn.Name,
-		fn.ExecutionCount,
-		fn.ReturnCount*100/fn.ExecutionCount,
-		fn.BlocksExecuted*100/fn.Blocks,
+		fn.Name, fn.ExecutionCount, returned, executed,
 	)
 }
 
